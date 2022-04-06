@@ -23,22 +23,43 @@ extension UILabel {
     }
 }
 
-//Keyboard Handling...
-extension ViewController {
-    func setKeyboardNotificationObserver(){
-        NotificationCenter.default.addObserver(self,selector: #selector(self.keyboardWasShown(notification:)),name: UIResponder.keyboardWillChangeFrameNotification,object: nil)
-        NotificationCenter.default.addObserver(self,selector: #selector(self.keyboardWillHide(sender:)),name: UIResponder.keyboardWillHideNotification,object: nil)
+//MARK:- L o c a t i o n
+extension GetLocationVC: CLLocationManagerDelegate{
+    func getTheLocation(){
+        locationManager = CLLocationManager()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.requestAlwaysAuthorization()
+        
+        if CLLocationManager.locationServicesEnabled(){
+            locationManager.startUpdatingLocation()
+        }
     }
-    @objc func keyboardWasShown(notification: NSNotification) {
-        let info = notification.userInfo!
-        let keyboardFrame: CGRect = (info[UIResponder.keyboardFrameEndUserInfoKey] as! NSValue).cgRectValue
-        UIView.transition(with: msgTxtView,duration: 1,options: .transitionCrossDissolve,animations: {
-            self.txtViewBottomConstraint.constant = (keyboardFrame.size.height)
-            //            self.bottomMove()
-        },completion: nil)
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let userLocation :CLLocation = locations[0] as CLLocation
+        locationManager.stopUpdatingLocation()
+        print("User latitude = \(userLocation.coordinate.latitude)")
+        print("User longitude = \(userLocation.coordinate.longitude)")
+        
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(userLocation) { (placemarks, error) in
+            if (error != nil){
+                print("error in reverseGeocode")
+            }
+            let placemark = placemarks! as [CLPlacemark]
+            if placemark.count>0{
+                let placemark = placemarks![0]
+                print(placemark.locality!)
+                print(placemark.administrativeArea!)
+                print(placemark.country!)
+                let myLocation = "\(placemark.locality!), \(placemark.country!)"
+                
+                self.locationTextView.text = myLocation
+                print("Hey there! Here is you location: \(placemark.locality!), \(placemark.administrativeArea!), \(placemark.country!)")
+            }
+        }
     }
-    @objc func keyboardWillHide(sender: NSNotification) {
-        UIView.transition(with: msgTxtView,duration: 0.2,options: .transitionCrossDissolve,animations: {self.txtViewBottomConstraint.constant = 40.0},completion: nil)
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Error \(error)")
     }
 }
-
